@@ -14,8 +14,8 @@ import openfl.utils.Assets as OpenFlAssets;
 import lime.utils.Assets;
 import flixel.FlxSprite;
 #if sys
-import sys.io.File;
 import sys.FileSystem;
+import sys.io.File;
 #end
 import flixel.graphics.FlxGraphic;
 import openfl.display.BitmapData;
@@ -112,7 +112,7 @@ class Paths
 		openfl.Assets.cache.clear("songs");
 	}
 
-	static public var currentModDirectory:String = '';
+	static public var currentModDirectory:String = "An Ammar's Creativity";
 	static public var currentLevel:String;
 	static public function setCurrentLevel(name:String)
 	{
@@ -218,19 +218,58 @@ class Paths
 		return file;
 	}
 
-	inline static public function voices(song:String):Any
+	inline static public function voices(song:String, ?suffix:String = ''):Any
 	{
-		var songKey:String = '${formatToSongPath(song)}/Voices';
+		var songKey:String = '${formatToSongPath(song)}/Voices$suffix';
 		var voices = returnSound('songs', songKey);
 		return voices;
 	}
 
-	inline static public function inst(song:String):Any
+	inline static public function voicesPlayer(song:String, ?suffix:String = ''):Any
 	{
-		var songKey:String = '${formatToSongPath(song)}/Inst';
+		var songKey:String = '${formatToSongPath(song)}/Voices-player$suffix';
+		var voices = returnSound('songs', songKey);
+		return voices;
+	}
+
+	inline static public function voicesOpponent(song:String, ?suffix:String = ''):Any
+	{
+		var songKey:String = '${formatToSongPath(song)}/Voices-opponent$suffix';
+		var voices = returnSound('songs', songKey);
+		return voices;
+	}
+
+	inline static public function voicesExist(song:String, addition:String = ''):Bool
+		{
+			var songKey:String = '${formatToSongPath(song)}/Voices'+addition;
+
+			#if sys
+			if (FileSystem.exists(getPath('songs/${songKey}.${SOUND_EXT}', SOUND)))
+				return true;
+			#end
+	
+			return false;
+		}
+
+	inline static public function inst(song:String, ?suffix:String = ''):Any
+	{
+		var songKey:String = '${formatToSongPath(song)}/Inst$suffix';
 		var inst = returnSound('songs', songKey);
 		return inst;
 	}
+
+	inline static public function instExist(song:String, addition:String = ''):Bool
+		{
+			var songKey:String = '${formatToSongPath(song)}/Inst'+addition;
+
+			#if sys
+			if (FileSystem.exists(getPath('songs/${songKey}.${SOUND_EXT}', SOUND)))
+				return true;
+			#end
+	
+			return false;
+		}
+
 
 	inline static public function image(key:String, ?library:String):FlxGraphic
 	{
@@ -238,6 +277,7 @@ class Paths
 		var returnAsset:FlxGraphic = returnGraphic(key, library);
 		return returnAsset;
 	}
+	
 
 	static public function getTextFromFile(key:String, ?ignoreMods:Bool = false):String
 	{
@@ -286,6 +326,7 @@ class Paths
 		}
 		#end
 
+		//trace(getPath(key, type));
 		if(OpenFlAssets.exists(getPath(key, type))) {
 			return true;
 		}
@@ -324,7 +365,11 @@ class Paths
 	}
 
 	inline static public function formatToSongPath(path:String) {
-		return path.toLowerCase().replace(' ', '-').replace('.', '').replace('?', '').replace('!', '').replace('\\', '').replace('/', '');
+		var invalidChars = ~/[~&\\;:<>#]/;
+		var hideChars = ~/[.,'"%?!]/;
+
+		var path = invalidChars.split(path.replace(' ', '-')).join("-");
+		return hideChars.split(path).join("").toLowerCase();
 	}
 
 	// completely rewritten asset loading? fuck!
@@ -355,7 +400,8 @@ class Paths
 			localTrackedAssets.push(path);
 			return currentTrackedAssets.get(path);
 		}
-		trace('oh no its returning null NOOOO');
+		//trace('oh no its returning null NOOOO');
+		FlxG.log.warn('Path NULL ' + path);
 		return null;
 	}
 
@@ -374,15 +420,14 @@ class Paths
 		// I hate this so god damn much
 		var gottenPath:String = getPath('$path/$key.$SOUND_EXT', SOUND, library);
 		gottenPath = gottenPath.substring(gottenPath.indexOf(':') + 1, gottenPath.length);
-		// trace(gottenPath);
-		if(!currentTrackedSounds.exists(gottenPath))
+		if(!currentTrackedSounds.exists(gottenPath) && FileSystem.exists(gottenPath))
 		#if MODS_ALLOWED
 			currentTrackedSounds.set(gottenPath, Sound.fromFile(gottenPath));
 		#else
 		{
 			var folder:String = '';
 			if(path == 'songs') folder = 'songs:';
-
+			
 			currentTrackedSounds.set(gottenPath, OpenFlAssets.getSound(folder + getPath('$path/$key.$SOUND_EXT', SOUND, library)));
 		}
 		#end
@@ -461,8 +506,8 @@ class Paths
 
 	static public function pushGlobalMods() // prob a better way to do this but idc
 	{
-		globalMods = [];
-		var path:String = 'modsList.txt';
+		globalMods = ["An Ammar's Creativity"]; // MUSt!!!!11
+		/*var path:String = 'modsList.txt';
 		if(FileSystem.exists(path))
 		{
 			var list:Array<String> = CoolUtil.coolTextFile(path);
@@ -480,6 +525,7 @@ class Paths
 								var stuff:Dynamic = Json.parse(rawJson);
 								var global:Bool = Reflect.getProperty(stuff, "runsGlobally");
 								if(global)globalMods.push(dat[0]);
+								trace(dat[0]);
 							}
 						} catch(e:Dynamic){
 							trace(e);
@@ -487,7 +533,7 @@ class Paths
 					}
 				}
 			}
-		}
+		}*/
 		return globalMods;
 	}
 

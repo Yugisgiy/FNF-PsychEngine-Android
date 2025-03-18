@@ -53,7 +53,7 @@ class MenuCharacter extends FlxSprite
 				var characterPath:String = 'images/menucharacters/' + character + '.json';
 				var rawJson = null;
 
-				#if windows
+				#if MODS_ALLOWED
 				var path:String = Paths.modFolders(characterPath);
 				if (!FileSystem.exists(path)) {
 					path = Paths.getPreloadPath(characterPath);
@@ -90,7 +90,7 @@ class MenuCharacter extends FlxSprite
 					scale.set(charFile.scale, charFile.scale);
 					updateHitbox();
 				}
-				offset.set(charFile.position[0], charFile.position[1]);
+				offset.set(charFile.position[0] * scale.x, charFile.position[1] * scale.y);
 				animation.play('idle');
 		}
 	}

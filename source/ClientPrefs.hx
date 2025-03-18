@@ -10,7 +10,10 @@ class ClientPrefs {
 	public static var downScroll:Bool = false;
 	public static var middleScroll:Bool = false;
 	public static var opponentStrums:Bool = true;
-	public static var showFPS:Bool = true;
+	#if android
+	public static var storageType:String = "EXTERNAL_DATA";
+	#end
+	public static var showFPS:Bool = false;
 	public static var flashing:Bool = true;
 	public static var globalAntialiasing:Bool = true;
 	public static var noteSplashes:Bool = true;
@@ -28,10 +31,11 @@ class ClientPrefs {
 	public static var scoreZoom:Bool = true;
 	public static var noReset:Bool = false;
 	public static var healthBarAlpha:Float = 1;
-	public static var controllerMode:Bool = true;
+	public static var controllerMode:Bool = false;
 	public static var hitsoundVolume:Float = 0;
 	public static var pauseMusic:String = 'Tea Time';
 	public static var checkForUpdates:Bool = true;
+	public static var comboStacking = true;
 	public static var gameplaySettings:Map<String, Dynamic> = [
 		'scrollspeed' => 1.0,
 		'scrolltype' => 'multiplicative', 
@@ -47,10 +51,13 @@ class ClientPrefs {
 		'songspeed' => 1.0,
 		'healthgain' => 1.0,
 		'healthloss' => 1.0,
+		'mechanics' => true,
+		'specialnotes' => true,
 		'instakill' => false,
 		'practice' => false,
 		'botplay' => false,
-		'opponentplay' => false
+		'opponentplay' => false,
+		'modchart' => true
 	];
 
 	public static var comboOffset:Array<Int> = [0, 0, 0, 0];
@@ -59,6 +66,24 @@ class ClientPrefs {
 	public static var goodWindow:Int = 90;
 	public static var badWindow:Int = 135;
 	public static var safeFrames:Float = 10;
+
+	// Ammar
+	public static var aDifficulty:String = 'classic'; // Newbie, Classic, Challenging
+	public static var mechanics:Bool = true;
+	public static var specialNotes:Bool = true;
+	public static var filterCurses:Bool = true;
+	public static var reduceShakiness:Bool = false;
+	public static var hardMode:Bool = false;
+	public static var cute:Bool = false;
+	public static var sillybop:Bool = false;
+	public static var nopromotion:Bool = false;
+	public static var developer:Bool = false;
+	public static var badges:Array<String> = [];
+	public static var hideunused:Bool = false;
+
+	public static var progress:Float = 0;
+	public static var prevVersion:String = '';
+	//
 
 	//Every key has two binds, add your key bind down here and then add your control on options/ControlsSubState.hx and Controls.hx
 	public static var keyBinds:Map<String, Array<FlxKey>> = [
@@ -83,7 +108,12 @@ class ClientPrefs {
 		'volume_down'	=> [NUMPADMINUS, MINUS],
 		
 		'debug_1'		=> [SEVEN, NONE],
-		'debug_2'		=> [EIGHT, NONE]
+		'debug_2'		=> [EIGHT, NONE],
+
+		'vocal_aa'		=> [ONE, NONE],
+		'vocal_ee'		=> [TWO, NONE],
+		'vocal_oo'		=> [THREE, NONE],
+		'vocal_eh'		=> [FOUR, NONE]
 	];
 	public static var defaultKeys:Map<String, Array<FlxKey>> = null;
 
@@ -96,6 +126,9 @@ class ClientPrefs {
 		FlxG.save.data.downScroll = downScroll;
 		FlxG.save.data.middleScroll = middleScroll;
 		FlxG.save.data.opponentStrums = opponentStrums;
+		#if android
+		FlxG.save.data.storageType = storageType;
+		#end
 		FlxG.save.data.showFPS = showFPS;
 		FlxG.save.data.flashing = flashing;
 		FlxG.save.data.globalAntialiasing = globalAntialiasing;
@@ -128,11 +161,29 @@ class ClientPrefs {
 		FlxG.save.data.hitsoundVolume = hitsoundVolume;
 		FlxG.save.data.pauseMusic = pauseMusic;
 		FlxG.save.data.checkForUpdates = checkForUpdates;
+		FlxG.save.data.comboStacking = comboStacking;
+
+		FlxG.save.data.aDifficulty = aDifficulty; // Newbie, Classic, Challenging
+		FlxG.save.data.mechanics = mechanics;
+		FlxG.save.data.specialNotes = specialNotes;
+		FlxG.save.data.filterCurses = filterCurses;
+		FlxG.save.data.reduceShakiness = reduceShakiness;
+		FlxG.save.data.hardMode = hardMode;
+		FlxG.save.data.cute = cute;
+		FlxG.save.data.badges = badges;
+
+		FlxG.save.data.sillybop = sillybop;
+		FlxG.save.data.nopromotion = nopromotion;
+		FlxG.save.data.developer = developer;
+		FlxG.save.data.hideunused = hideunused;
+
+		FlxG.save.data.progress = progress;
+		FlxG.save.data.prevVersion = prevVersion;
 	
 		FlxG.save.flush();
 
 		var save:FlxSave = new FlxSave();
-		save.bind('controls_v2', 'ninjamuffin99'); //Placing this in a separate save so that it can be manually deleted without removing your Score and stuff
+		save.bind('controls_v2', 'ninjamuffin99/AnAmmar'); //Placing this in a separate save so that it can be manually deleted without removing your Score and stuff
 		save.data.customControls = keyBinds;
 		save.flush();
 		FlxG.log.add("Settings saved!");
@@ -148,6 +199,11 @@ class ClientPrefs {
 		if(FlxG.save.data.opponentStrums != null) {
 			opponentStrums = FlxG.save.data.opponentStrums;
 		}
+		#if android
+		if(FlxG.save.data.storageType != null) {
+			storageType = FlxG.save.data.storageType;
+		}
+		#end
 		if(FlxG.save.data.showFPS != null) {
 			showFPS = FlxG.save.data.showFPS;
 			if(Main.fpsVar != null) {
@@ -262,9 +318,51 @@ class ClientPrefs {
 		{
 			checkForUpdates = FlxG.save.data.checkForUpdates;
 		}
+		if (FlxG.save.data.comboStacking != null)
+			comboStacking = FlxG.save.data.comboStacking;
+
+		if (FlxG.save.data.mechanics != null)
+			mechanics = FlxG.save.data.mechanics;
+
+		if (FlxG.save.data.specialNotes != null)
+			specialNotes = FlxG.save.data.specialNotes;
+
+		if (FlxG.save.data.filterCurses != null)
+			filterCurses = FlxG.save.data.filterCurses;
+
+		if (FlxG.save.data.reduceShakiness != null)
+			reduceShakiness = FlxG.save.data.reduceShakiness;
+
+		if (FlxG.save.data.hardMode != null)
+			hardMode = FlxG.save.data.hardMode;
+
+		if (FlxG.save.data.cute != null)
+			cute = FlxG.save.data.cute;
+
+		if (FlxG.save.data.badges != null)
+			badges = FlxG.save.data.badges;
+
+		if (FlxG.save.data.sillybop != null)
+			sillybop = FlxG.save.data.sillybop;
+
+		if (FlxG.save.data.nopromotion != null)
+			nopromotion = FlxG.save.data.nopromotion;
+
+		if (FlxG.save.data.developer != null)
+			developer = FlxG.save.data.developer;
+
+		if (FlxG.save.data.progress != null)
+			progress = FlxG.save.data.progress;
+
+		if (FlxG.save.data.prevVersion != null)
+			progress = FlxG.save.data.prevVersion;
+		
+		if (FlxG.save.data.hideunused != null)
+			progress = FlxG.save.data.hideunused;
+
 
 		var save:FlxSave = new FlxSave();
-		save.bind('controls_v2', 'ninjamuffin99');
+		save.bind('controls_v2', 'ninjamuffin99/AnAmmar');
 		if(save != null && save.data.customControls != null) {
 			var loadedControls:Map<String, Array<FlxKey>> = save.data.customControls;
 			for (control => keys in loadedControls) {
@@ -275,6 +373,7 @@ class ClientPrefs {
 	}
 
 	inline public static function getGameplaySetting(name:String, defaultValue:Dynamic):Dynamic {
+		if (PlayState.isStoryMode) return defaultValue;
 		return /*PlayState.isStoryMode ? defaultValue : */ (gameplaySettings.exists(name) ? gameplaySettings.get(name) : defaultValue);
 	}
 
@@ -302,5 +401,30 @@ class ClientPrefs {
 			len = copiedArray.length;
 		}
 		return copiedArray;
+	}
+
+	public static function resetSaves():Void {
+		trace('!!!!!!!!!!!!!!!!delete save!!!!!!!!!!!!');
+		aDifficulty = 'normal';
+		cute = false;
+		badges = [];
+		progress = 0;
+
+		FlxG.save.data.aDifficulty = aDifficulty; // Easy, Normal, Hard
+		FlxG.save.data.cute = cute;
+		FlxG.save.data.badges = badges;
+		FlxG.save.data.progress = progress;
+			
+		FlxG.save.data.songHighscore = null;
+		FlxG.save.data.weekHighscore = null;
+
+		#if (haxe >= "4.0.0")
+		Highscore.songHighscore = new Map();
+		Highscore.weekHighscore = new Map();
+		#else
+		Highscore.songHighscore = new Map<String, Map<String, Float>>();
+		Highscore.weekHighscore = new Map<String, Map<String, Float>>();
+		#end
+		
 	}
 }

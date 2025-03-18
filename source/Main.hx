@@ -10,6 +10,7 @@ import openfl.display.FPS;
 import openfl.display.Sprite;
 import openfl.events.Event;
 import openfl.display.StageScaleMode;
+import mobile.StorageUtil;
 
 //crash handler stuff
 #if CRASH_HANDLER
@@ -22,6 +23,10 @@ import sys.FileSystem;
 import sys.io.File;
 import sys.io.Process;
 #end
+import flixel.system.FlxAssets;
+import openfl.display.Bitmap;
+import openfl.display.BitmapData;
+import mobile.CopyState;
 
 using StringTools;
 
@@ -35,17 +40,37 @@ class Main extends Sprite
 	var skipSplash:Bool = true; // Whether to skip the flixel splash screen that appears in release mode.
 	var startFullscreen:Bool = false; // Whether to start the game in fullscreen on desktop targets
 	public static var fpsVar:FPS;
+	
 
 	// You can pretty much ignore everything from here on - your code should go in your states.
 
 	public static function main():Void
 	{
 		Lib.current.addChild(new Main());
+		// #if FLX_SOUND_TRAY
+		// _customSoundTray = FlxFunkSoundTray;
+		// #end
 	}
 
 	public function new()
 	{
 		super();
+		
+		#if mobile
+		#if android
+		StorageUtil.requestPermissions();
+		#end
+		Sys.setCwd(StorageUtil.getStorageDirectory());
+		#end
+
+		#if windows
+		@:functionCode("
+		#include <windows.h>
+		#include <winuser.h>
+		setProcessDPIAware() // allows for more crisp visuals
+		DisableProcessWindowsGhosting() // lets you move the window and such if it's not responding
+		")
+		#end
 
 		if (stage != null)
 		{
@@ -82,15 +107,42 @@ class Main extends Sprite
 		}
 	
 		ClientPrefs.loadDefaultKeys();
-		addChild(new FlxGame(gameWidth, gameHeight, initialState, zoom, framerate, framerate, skipSplash, startFullscreen));
+		addChild(new GameMain(gameWidth, gameHeight, #if (mobile && MODS_ALLOWED) CopyState.checkExistingFiles() ? initialState : CopyState #else initialState #end, framerate, framerate, skipSplash, startFullscreen));
 
-		fpsVar = new FPS(10, 3, 0xFFFFFF);
+		#if !mobile
+		fpsVar = new FPS(10, 3, 0x7CFFFFFF);
+		Main.fpsVar.defaultTextFormat = new openfl.text.TextFormat('assets/fonts/vcr.ttf', 14, -1);
 		addChild(fpsVar);
 		Lib.current.stage.align = "tl";
 		Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;
+		FlxG.game.stage.quality = openfl.display.StageQuality.LOW;
 		if(fpsVar != null) {
 			fpsVar.visible = ClientPrefs.showFPS;
 		}
+		#end
+
+		FlxG.stage.window.title = "Friday Night Funkin': An Ammar Creativity";
+		#if debug FlxG.stage.window.title += " - DEBUG"; #end
+
+		FlxG.game.focusLostFramerate = #if mobile 30 #else 60 #end;
+		#if mobile
+		//LimeSystem.allowScreenTimeout = ClientPrefs.data.screensaver; 		
+		FlxG.scaleMode = new mobile.MobileScaleMode();
+		#end
+
+		// shader coords fix
+		FlxG.signals.gameResized.add(function (w, h) {
+		    if (FlxG.cameras != null) {
+			  	for (cam in FlxG.cameras.list) {
+				@:privateAccess
+				if (cam != null && cam._filters != null)
+					resetSpriteCache(cam.flashSprite);
+			    }
+			}
+
+			if (FlxG.game != null)
+				resetSpriteCache(FlxG.game);
+		});
 
 		#if html5
 		FlxG.autoPause = false;
@@ -100,6 +152,13 @@ class Main extends Sprite
 		#if CRASH_HANDLER
 		Lib.current.loaderInfo.uncaughtErrorEvents.addEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, onCrash);
 		#end
+	}
+
+	static function resetSpriteCache(sprite:Sprite) {
+		@:privateAccess {
+		    sprite.__cacheBitmap = null;
+			sprite.__cacheBitmapData = null;
+		}
 	}
 
 	// Code was entirely made by sqirra-rng for their fnf engine named "Izzy Engine", big props to them!!!
@@ -128,7 +187,7 @@ class Main extends Sprite
 			}
 		}
 
-		errMsg += "\nUncaught Error: " + e.error + "\nPlease report this error to the GitHub page: https://github.com/ShadowMario/FNF-PsychEngine\n\n> Crash Handler written by: sqirra-rng";
+		errMsg += "\nUncaught Error: " + e.error;
 
 		if (!FileSystem.exists("./crash/"))
 			FileSystem.createDirectory("./crash/");
@@ -144,3 +203,67 @@ class Main extends Sprite
 	}
 	#end
 }
+
+class GameMain extends FlxGame
+	{
+		public function new(gameWidth:Int = 0, gameHeight:Int = 0, ?initialState:Class<FlxState>, updateFramerate:Int = 60, drawFramerate:Int = 60, skipSplash:Bool = false, startFullscreen:Bool = false)
+		{
+			super(gameWidth, gameHeight, initialState, updateFramerate, drawFramerate, skipSplash, startFullscreen);
+			#if FLX_SOUND_TRAY
+			_customSoundTray = FlxFunkSoundTray;
+			#end
+		}
+	}
+
+class FlxFunkSoundTray extends flixel.system.ui.FlxSoundTray
+{
+	var _bar:Bitmap;
+	
+	public function new() {
+		super();
+		removeChildren();
+		
+		final bg = new Bitmap(new BitmapData(80, 25, false, 0xff3f3f3f));
+		addChild(bg);
+
+		_bar = new Bitmap(new BitmapData(75, 25, false, 0xffffffff));
+		_bar.x = 2.5;
+		addChild(_bar);
+
+		final tmp:Bitmap = new Bitmap(openfl.Assets.getBitmapData("assets/images/soundtray.png", false), null, true);
+		addChild(tmp);
+		screenCenter();
+		
+		tmp.scaleX = 0.5;
+		tmp.scaleY = 0.5;
+		tmp.x -= tmp.width * 0.2;
+		tmp.y -= 5;
+
+		y = -height;
+		visible = false;
+	}
+	
+	override function update(elapsed:Float) {
+		super.update(elapsed / 4 ); // hack, sound tray is slow
+	}
+
+	override function show(up:Bool = false) {
+		if (!silent) {
+			#if desktop
+			final sound = FlxAssets.getSound("assets/sounds/scrollMenu");
+			if (sound != null)
+				FlxG.sound.load(sound).play();
+			#end
+		}
+
+		_timer = 0.25;
+		y = 0;
+		visible = active = true;
+		_bar.scaleX = FlxG.sound.muted ? 0 : FlxG.sound.volume;
+	}
+
+	override function screenCenter() {
+		_defaultScale = Math.min(FlxG.stage.stageWidth / FlxG.width, FlxG.stage.stageHeight / FlxG.height) * 2;
+		super.screenCenter();
+	}
+}		

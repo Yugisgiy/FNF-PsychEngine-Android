@@ -46,7 +46,7 @@ typedef AnimArray = {
 
 class Character extends FlxSprite
 {
-	public var animOffsets:Map<String, Array<Dynamic>>;
+	public var animOffsets:Map<String, Array<Float>>;
 	public var debugMode:Bool = false;
 
 	public var isPlayer:Bool = false;
@@ -86,7 +86,7 @@ class Character extends FlxSprite
 		#if (haxe >= "4.0.0")
 		animOffsets = new Map();
 		#else
-		animOffsets = new Map<String, Array<Dynamic>>();
+		animOffsets = new Map<String, Array<Float>>();
 		#end
 		curCharacter = character;
 		this.isPlayer = isPlayer;
@@ -99,7 +99,7 @@ class Character extends FlxSprite
 			default:
 				var characterPath:String = 'characters/' + curCharacter + '.json';
 
-				#if windows
+				#if MODS_ALLOWED
 				var path:String = Paths.modFolders(characterPath);
 				if (!FileSystem.exists(path)) {
 					path = Paths.getPreloadPath(characterPath);
@@ -114,7 +114,7 @@ class Character extends FlxSprite
 					path = Paths.getPreloadPath('characters/' + DEFAULT_CHARACTER + '.json'); //If a character couldn't be found, change him to BF just to prevent a crash
 				}
 
-				#if windows
+				#if MODS_ALLOWED
 				var rawJson = File.getContent(path);
 				#else
 				var rawJson = Assets.getText(path);
@@ -125,7 +125,7 @@ class Character extends FlxSprite
 				//sparrow
 				//packer
 				//texture
-				#if windows
+				#if MODS_ALLOWED
 				var modTxtToFind:String = Paths.modsTxt(json.image);
 				var txtToFind:String = Paths.getPath('images/' + json.image + '.txt', TEXT);
 				
@@ -140,7 +140,7 @@ class Character extends FlxSprite
 					spriteType = "packer";
 				}
 				
-				#if windows
+				#if MODS_ALLOWED
 				var modAnimToFind:String = Paths.modFolders('images/' + json.image + '/Animation.json');
 				var animToFind:String = Paths.getPath('images/' + json.image + '/Animation.json', TEXT);
 				
@@ -260,7 +260,7 @@ class Character extends FlxSprite
 		{
 			if(heyTimer > 0)
 			{
-				heyTimer -= elapsed;
+				heyTimer -= elapsed * PlayState.instance.playbackRate;
 				if(heyTimer <= 0)
 				{
 					if(specialAnim && animation.curAnim.name == 'hey' || animation.curAnim.name == 'cheer')
@@ -298,7 +298,7 @@ class Character extends FlxSprite
 					holdTimer += elapsed;
 				}
 
-				if (holdTimer >= Conductor.stepCrochet * 0.0011 * singDuration)
+				if (holdTimer >= Conductor.stepCrochet * (0.0011 / (FlxG.sound.music != null ? FlxG.sound.music.pitch : 1)) * singDuration)
 				{
 					dance();
 					holdTimer = 0;
@@ -345,7 +345,7 @@ class Character extends FlxSprite
 		var daOffset = animOffsets.get(AnimName);
 		if (animOffsets.exists(AnimName))
 		{
-			offset.set(daOffset[0], daOffset[1]);
+			offset.set(daOffset[0] * scale.x, daOffset[1] * scale.y);
 		}
 		else
 			offset.set(0, 0);

@@ -23,31 +23,22 @@ class FlashingState extends MusicBeatState
 		var bg:FlxSprite = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
 		add(bg);
 
-		#if android
 		warnText = new FlxText(0, 0, FlxG.width,
-			"Hey, watch out!\n
-			Be careful when you touch the phone fast!\n
-			You can break your phone screen if you do that,also\n
+			"
+			NOTICE\n
 			This Mod contains some flashing lights!\n
-			Press A to disable them now or go to Options Menu.\n
-			Press B to ignore this message.\n
-			You've been warned!",
+			You can disable it on the options menu.\n
+			And also, don't try cheat!\n
+			You have to enable developer mode first!\n
+			Anyways,\n
+			Thank you for playing!",
 			32);
-		#else
-		warnText = new FlxText(0, 0, FlxG.width,
-			"Hey, watch out!\n
-			This Mod contains some flashing lights!\n
-			Press ENTER to disable them now or go to Options Menu.\n
-			Press ESCAPE to ignore this message.\n
-			You've been warned!",
-			32);
-		#end
-		warnText.setFormat("VCR OSD Mono", 32, FlxColor.WHITE, CENTER);
-		warnText.screenCenter(Y);
+		warnText.setFormat(Paths.font("Phantomuff/aPhantomMuff Full Letters.ttf"), 32, FlxColor.WHITE, CENTER);
+		warnText.screenCenter();
+		warnText.x += 10;
 		add(warnText);
-
-		#if android
-		addVirtualPad(NONE, A_B);
+		#if MOBILE
+		FlxG.mouse.visible = false;
 		#end
 	}
 
@@ -55,33 +46,25 @@ class FlashingState extends MusicBeatState
 	{
 		if(!leftState) {
 			var back:Bool = controls.BACK;
+			#if MOBILE
+			for (movement in FlxG.touches.list) {
+				if (movement.justPressed) {
+					back = true;
+				}
+			}
+			#end
 			if (controls.ACCEPT || back) {
 				leftState = true;
+				FlxG.save.data.flashing = true;
+				FlxG.save.flush();
 				FlxTransitionableState.skipNextTransIn = true;
 				FlxTransitionableState.skipNextTransOut = true;
-				if(!back) {
-					ClientPrefs.flashing = false;
-					ClientPrefs.saveSettings();
-					FlxG.sound.play(Paths.sound('confirmMenu'));
-					FlxFlicker.flicker(warnText, 1, 0.1, false, true, function(flk:FlxFlicker) {
-						#if android
-						virtualPad.alpha = 0;
-						#end
-						new FlxTimer().start(0.5, function (tmr:FlxTimer) {
-							MusicBeatState.switchState(new TitleState());
-						});
-					});
-				} else {
-					FlxG.sound.play(Paths.sound('cancelMenu'));
-					#if android
-					FlxTween.tween(virtualPad, {alpha: 0}, 1);
-					#end
-					FlxTween.tween(warnText, {alpha: 0}, 1, {
-						onComplete: function (twn:FlxTween) {
-							MusicBeatState.switchState(new TitleState());
-						}
-					});
-				}
+				FlxG.sound.play(Paths.sound('cancelMenu'));
+				FlxTween.tween(warnText, {alpha: 0}, 1, {
+					onComplete: function (twn:FlxTween) {
+						MusicBeatState.switchState(new TitleState());
+					}
+				});
 			}
 		}
 		super.update(elapsed);

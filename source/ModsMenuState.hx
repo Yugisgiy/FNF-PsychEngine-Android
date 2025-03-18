@@ -18,6 +18,11 @@ import lime.utils.Assets;
 import flixel.system.FlxSound;
 import openfl.utils.Assets as OpenFlAssets;
 import sys.io.File;
+#if (flixel >= "5.3.0")
+import flixel.sound.FlxSound;
+#else
+import flixel.system.FlxSound;
+#end
 import sys.FileSystem;
 import haxe.Json;
 import haxe.format.JsonParser;
@@ -329,9 +334,10 @@ class ModsMenuState extends MusicBeatState
 			var newMod:ModMetadata = new ModMetadata(values[0]);
 			mods.push(newMod);
 
-			newMod.alphabet = new Alphabet(0, 0, mods[i].name, true, false, 0.05);
+			newMod.alphabet = new Alphabet(0, 0, mods[i].name, true);
 			var scale:Float = Math.min(840 / newMod.alphabet.width, 1);
-			newMod.alphabet = new Alphabet(0, 0, mods[i].name, true, false, 0.05, scale);
+			newMod.alphabet.scaleX = scale;
+			newMod.alphabet.scaleY = scale;
 			newMod.alphabet.y = i * 150;
 			newMod.alphabet.x = 310;
 			add(newMod.alphabet);

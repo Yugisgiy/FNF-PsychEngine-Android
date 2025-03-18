@@ -1,19 +1,37 @@
 package;
 
+import flixel.math.FlxPoint;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.graphics.frames.FlxAtlasFrames;
-
+#if MODCHARTS import math.Vector3; #end
+#if MODCHARTS_EDWHAK
+import flixel.addons.effects.FlxSkewedSprite;
+#end
 using StringTools;
 
-class StrumNote extends FlxSprite
+class StrumNote extends #if MODCHARTS_EDWHAK FlxSkewedSprite #else FlxSprite #end
 {
+	#if MODCHARTS
+	public var vec3Cache:Vector3 = new Vector3(); // for vector3 operations in modchart code
+	public var defScale:FlxPoint = FlxPoint.get(); // for modcharts to keep the scaling
+
+	public var zIndex:Float = 0;
+	public var desiredZIndex:Float = 0;
+	public var z:Float = 0;
+	override function destroy()
+	{
+		defScale.put();
+		super.destroy();
+	}	
+	#end
 	private var colorSwap:ColorSwap;
 	public var resetAnim:Float = 0;
-	private var noteData:Int = 0;
+	public var noteData:Int = 0;
 	public var direction:Float = 90;//plan on doing scroll directions soon -bb
 	public var downScroll:Bool = false;//plan on doing scroll directions soon -bb
 	public var sustainReduce:Bool = true;
+	public var defaultPosition:FlxPoint = FlxPoint.get(0, 0);
 	
 	private var player:Int;
 	
@@ -25,6 +43,21 @@ class StrumNote extends FlxSprite
 		}
 		return value;
 	}
+
+	#if MODCHARTS
+	public function getZIndex()
+		{
+			var animZOffset:Float = 0;
+			if (animation.curAnim != null && animation.curAnim.name == 'confirm')
+				animZOffset += 1;
+			return z + desiredZIndex + animZOffset - (player == 0 ? 1 : 0);
+		}
+	
+	function updateZIndex()
+	{
+		zIndex = getZIndex();
+	}
+	#end
 
 	public function new(x:Float, y:Float, leData:Int, player:Int) {
 		colorSwap = new ColorSwap();
@@ -111,6 +144,7 @@ class StrumNote extends FlxSprite
 					animation.addByPrefix('confirm', 'right confirm', 24, false);
 			}
 		}
+		#if MODCHARTS defScale.copyFrom(scale); #end
 		updateHitbox();
 
 		if(lastAnim != null)
@@ -135,11 +169,13 @@ class StrumNote extends FlxSprite
 				resetAnim = 0;
 			}
 		}
-		//if(animation.curAnim != null){ //my bad i was upset
-		if(animation.curAnim.name == 'confirm' && !PlayState.isPixelStage) {
-			centerOrigin();
-		//}
+
+		if(animation.curAnim != null){
+			if(animation.curAnim.name == 'confirm' && !PlayState.isPixelStage) 
+				centerOrigin();
 		}
+
+		#if MODCHARTS updateZIndex(); #end
 
 		super.update(elapsed);
 	}
@@ -148,6 +184,7 @@ class StrumNote extends FlxSprite
 		animation.play(anim, force);
 		centerOffsets();
 		centerOrigin();
+		#if MODCHARTS updateZIndex(); #end
 		if(animation.curAnim == null || animation.curAnim.name == 'static') {
 			colorSwap.hue = 0;
 			colorSwap.saturation = 0;
